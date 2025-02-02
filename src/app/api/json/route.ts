@@ -73,16 +73,16 @@ export const POST = async (req: NextRequest) => {
 
   const dynamicSchema = jsonSchemaToZod(format);
 
-  const result = await RetryablePromise.retry<object>(
+  const PROMPT = `DATA: \n"${data}"\n\n-----------\nExpected JSON format: ${JSON.stringify(
+    format,
+    null,
+    2
+  )}`;
+
+  const result = await RetryablePromise.retry<string>(
     3,
     async (resolve, reject) => {
       try {
-        const PROMPT = `DATA: \n"${data}"\n\n-----------\nExpected JSON format: ${JSON.stringify(
-          format,
-          null,
-          2
-        )}`;
-
         const res = await openai.chat.completions.create({
           model: "gpt-3.5-turbo",
           messages: [
@@ -92,7 +92,7 @@ export const POST = async (req: NextRequest) => {
                 "You are an AI that transforms unstructured data into the exact JSON format provided in the attachment. Your response must be strictly valid JSON, with no extra text, explanations, or formatting outside of the JSON structure. Start immediately with the opening curly brace '{' and end with the closing curly brace '}'. If a field's value is indeterminate, assign it 'null', but avoid assumptions or modifications beyond formatting the data correctly.",
             },
             { role: "user", content: EXAMPLE_PROMPT },
-            { role: "user", content: EXAMPLE_ANSWER },
+            { role: "system", content: EXAMPLE_ANSWER },
             { role: "user", content: PROMPT },
           ],
         });
