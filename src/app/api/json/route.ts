@@ -1,5 +1,12 @@
 import { openai } from "@/lib/openai";
-import { EXAMPLE_ANSWER, EXAMPLE_PROMPT } from "@/lib/utils/example-prompt";
+import {
+  COMPLEX_EXAMPLE_ANSWER,
+  COMPLEX_EXAMPLE_PROMPT,
+  EXAMPLE_ANSWER,
+  EXAMPLE_PROMPT,
+  NESTED_EXAMPLE_ANSWER,
+  NESTED_EXAMPLE_PROMPT,
+} from "@/lib/utils/example-prompt";
 import { NextRequest, NextResponse } from "next/server";
 import { z, ZodTypeAny } from "zod";
 
@@ -84,15 +91,22 @@ export const POST = async (req: NextRequest) => {
     async (resolve, reject) => {
       try {
         const res = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
+          model: "gpt-4o",
+          temperature: 1,
+          max_tokens: 4096,
+          top_p: 1,
           messages: [
             {
               role: "assistant",
               content:
-                "You are an AI that transforms unstructured data into the exact JSON format provided in the attachment. Your response must be strictly valid JSON, with no extra text, explanations, or formatting outside of the JSON structure. Start immediately with the opening curly brace '{' and end with the closing curly brace '}'. If a field's value is indeterminate, assign it 'null', but avoid assumptions or modifications beyond formatting the data correctly.",
+                "You are an AI that converts unstructured data into the exact JSON format provided in the attachment. Your response must be a pure JSON object with no extra characters, formatting, code blocks, or explanations. Do not include markdown, backticks, or any other symbols—only the JSON object itself. Begin immediately with `{` and end with `}`. If a field's value is indeterminate, use `null`, but make no assumptions or modifications beyond structuring the data correctly.",
             },
             { role: "user", content: EXAMPLE_PROMPT },
             { role: "system", content: EXAMPLE_ANSWER },
+            { role: "user", content: COMPLEX_EXAMPLE_PROMPT },
+            { role: "system", content: COMPLEX_EXAMPLE_ANSWER },
+            { role: "user", content: NESTED_EXAMPLE_PROMPT },
+            { role: "system", content: NESTED_EXAMPLE_ANSWER },
             { role: "user", content: PROMPT },
           ],
         });
