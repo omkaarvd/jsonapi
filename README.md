@@ -1,6 +1,6 @@
 # JSON API Converter
 
-A Next.js API that converts unstructured data into structured JSON using OpenAI's GPT-4 model and validates the output using Zod schemas.
+A API that converts unstructured data into structured JSON using OpenAI's GPT-4 model and validates the output using Zod schemas.
 
 ## Features
 
@@ -12,7 +12,7 @@ A Next.js API that converts unstructured data into structured JSON using OpenAI'
 
 ## Tech Stack
 
-- [Next.js 15](https://nextjs.org/) - React framework with API routes
+- [Express](https://expressjs.com/) - Web framework for Node.js
 - [OpenAI API](https://platform.openai.com/) - GPT-4 for text processing
 - [Zod](https://zod.dev/) - Runtime schema validation
 - [TypeScript](https://www.typescriptlang.org/) - Type safety

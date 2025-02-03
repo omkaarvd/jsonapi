@@ -1,4 +1,5 @@
-import { openai } from "@/lib/openai";
+import { type Request, type Response } from "express";
+import { z } from "zod";
 import {
   COMPLEX_EXAMPLE_ANSWER,
   COMPLEX_EXAMPLE_PROMPT,
@@ -6,73 +7,16 @@ import {
   EXAMPLE_PROMPT,
   NESTED_EXAMPLE_ANSWER,
   NESTED_EXAMPLE_PROMPT,
-} from "@/lib/utils/example-prompt";
-import { NextRequest, NextResponse } from "next/server";
-import { z, ZodTypeAny } from "zod";
+} from "./utils/example-prompt";
+import { openai } from "./utils/openai";
+import { RetryablePromise } from "./utils/retryable-promise";
+import { jsonSchemaToZod } from "./utils/schema.handler";
 
-const determineSchemaType = (schema: any): string => {
-  if (!schema.hasOwnProperty("type")) {
-    if (Array.isArray(schema)) return "array";
-    else return typeof schema;
-  }
-
-  return schema.type;
-};
-
-const jsonSchemaToZod = (schema: any): ZodTypeAny => {
-  const type = determineSchemaType(schema);
-
-  switch (type) {
-    case "string":
-      return z.string().nullable();
-
-    case "number":
-      return z.number().nullable();
-
-    case "boolean":
-      return z.boolean().nullable();
-
-    case "array":
-      return z.array(jsonSchemaToZod(schema.items)).nullable();
-
-    case "object":
-      const shape: Record<string, ZodTypeAny> = {};
-      for (const key in schema) {
-        if (key !== "type") {
-          shape[key] = jsonSchemaToZod(schema[key]);
-        }
-      }
-      return z.object(shape).nullable();
-
-    default:
-      throw new Error(`Unsupported schema type: ${type}`);
-  }
-};
-
-type PromiseExecutor<T> = (
-  resolve: (value: T) => void,
-  reject: (reason?: any) => void
-) => void;
-
-class RetryablePromise<T> extends Promise<T> {
-  static async retry<T>(
-    retries: number,
-    executor: PromiseExecutor<T>
-  ): Promise<T> {
-    return new RetryablePromise<T>(executor).catch((error) => {
-      console.error(`Retrying due to error: ${error}`);
-      return retries > 0
-        ? RetryablePromise.retry(retries - 1, executor)
-        : RetryablePromise.reject(error);
-    });
-  }
-}
-
-export const POST = async (req: NextRequest) => {
-  const body = await req.json();
+export const jsonController = async (req: Request, res: Response) => {
+  const body = req.body;
 
   const genericSchema = z.object({
-    data: z.string(),
+    data: z.string().min(1, "Data field cannot be empty"),
     format: z.object({}).passthrough(),
   });
 
@@ -90,7 +34,7 @@ export const POST = async (req: NextRequest) => {
     3,
     async (resolve, reject) => {
       try {
-        const res = await openai.chat.completions.create({
+        const response = await openai.chat.completions.create({
           model: "gpt-4o",
           temperature: 1,
           max_tokens: 4096,
@@ -111,7 +55,7 @@ export const POST = async (req: NextRequest) => {
           ],
         });
 
-        const text = res.choices[0].message.content;
+        const text = response.choices[0]!.message.content;
 
         const validationResult = dynamicSchema.parse(JSON.parse(text || ""));
 
@@ -122,5 +66,5 @@ export const POST = async (req: NextRequest) => {
     }
   );
 
-  return NextResponse.json(result, { status: 200 });
+  return res.status(200).json(result);
 };
