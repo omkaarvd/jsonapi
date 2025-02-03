@@ -1,6 +1,6 @@
 # JSON API Converter
 
-A API that converts unstructured data into structured JSON using OpenAI's GPT-4 model and validates the output using Zod schemas.
+API that converts unstructured data into structured JSON using OpenAI's GPT-4 model and validates the output using Zod schemas.
 
 ## Features
 
